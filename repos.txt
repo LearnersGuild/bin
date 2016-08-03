@@ -26,7 +26,6 @@ learning-os-software
 lg-reporter
 los
 meteor-buildpack-horse
-move-deal-stage
 passport-auth0-jwt-cookie
 peeragogy-handbook
 Peeragogy.github.io
