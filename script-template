@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+#
+# {script name}
+#
+# {script description}
+#
+
+root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$root_dir/.env"
