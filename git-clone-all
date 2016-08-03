@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+#
+# git-clone-all
+#
+# Clones all of the repositories in the LearnersGuild org into the LG_BASE_DIR
+# directory (specified in ./.env).
+#
+
+root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$root_dir/.env"
+
+repos="$root_dir/repos.txt"
+
+cd $LG_BASE_DIR
+
+while read repo; do
+  git_url="git@github.com:LearnersGuild/$repo.git"
+  git clone $git_url
+done <"$repos"
