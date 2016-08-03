@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+#
+# git-pull-all
+#
+# Runs a `git pull` in all of the repositories in the LearnersGuild org.
+#
+
+root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+source "$root_dir/.env"
+
+repos="$root_dir/repos.txt"
+
+cd $LG_BASE_DIR
+
+while read repo; do
+  cd "$LG_BASE_DIR/$repo"
+  git pull
+done <"$repos"
