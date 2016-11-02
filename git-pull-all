@@ -6,11 +6,10 @@
 # Runs a `git pull` in all of the repositories in the LearnersGuild org.
 #
 
-root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${ROOT_DIR}/.env"
 
-source "$root_dir/.env"
-
-repos="$root_dir/repos.txt"
+repos="${ROOT_DIR}/repos.txt"
 
 cd $LG_BASE_DIR
 

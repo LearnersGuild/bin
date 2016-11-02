@@ -6,5 +6,5 @@
 # {script description}
 #
 
-root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$root_dir/.env"
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${ROOT_DIR}/.env"
