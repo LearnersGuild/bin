@@ -28,7 +28,8 @@ ENDUSAGE
 }
 
 function debugLog {
-  test -n "${VERBOSE}" && echo "$@"
+  test -n "${VERBOSE}" || return 0
+  echo "$@"
 }
 
 function parseArgs {
@@ -61,13 +62,14 @@ function ensureTools {
 }
 
 function sourceHerokuConfig {
+  heroku apps:info "${HEROKU_APP_NAME}" >/dev/null 2>&1 || die "No such app on heroku: ${HEROKU_APP_NAME}"
   debugLog "Getting the production configuration for ${HEROKU_APP_NAME} ..."
   HEROKU_CONFIG_FILE="${TMP_DIR}/${HEROKU_APP_NAME}-${NOW}"
   heroku config -s --app "${HEROKU_APP_NAME}" > "${HEROKU_CONFIG_FILE}"
   source ${HEROKU_CONFIG_FILE}
 
-  test -n "${RETHINKDB_URL}" || die "Failed to find a valid RETHINKDB_URL from heroku."
-  test -n "${RETHINKDB_CERT}" || die "Failed to find a valid RETHINKDB_CERT from heroku."
+  test -n "${RETHINKDB_URL}" || die "Failed to find a valid RETHINKDB_URL for the app ${HEROKU_APP_NAME}."
+  test -n "${RETHINKDB_CERT}" || die "Failed to find a valid RETHINKDB_CERT for the app ${HEROKU_APP_NAME}."
 }
 
 function createCertFile {
@@ -84,10 +86,10 @@ function parseRethinkURL {
   RETHINKDB_PORT=${FIELDS[3]}
   RETHINKDB_DB=${FIELDS[4]}
 
-  test -n "${RETHINKDB_AUTH}" || die "Failed to find a valid RETHINKDB_AUTH within ${RETHINKDB_URL}."
-  test -n "${RETHINKDB_HOST}" || die "Failed to find a valid RETHINKDB_HOST within ${RETHINKDB_URL}."
-  test -n "${RETHINKDB_PORT}" || die "Failed to find a valid RETHINKDB_PORT within ${RETHINKDB_URL}."
-  test -n "${RETHINKDB_DB}" || die "Failed to find a valid RETHINKDB_DB within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_AUTH}" || die "Failed to find a valid password within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_HOST}" || die "Failed to find a valid hostname within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_PORT}" || die "Failed to find a valid port within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_DB}" || die "Failed to find a valid database name within ${RETHINKDB_URL}."
 }
 
 function createPasswordFile {
