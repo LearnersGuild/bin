@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+
+#
+# resyncdb
+#
+# synchronize a production RethinkDB database to your local RethinkDB instance
+#
+
+
+set -e
+
+function die {
+  echo "Error: $1" && exit 1
+}
+
+function printUsage {
+  cat <<ENDUSAGE
+Usage:
+  ${SCRIPT_NAME} [-h] HEROKU_APP_NAME LOCAL_DB_NAME
+
+Options:
+  -h    print this help message
+  -v    log some helpful debugging output
+
+Example:
+  ${SCRIPT_NAME} lg-game game_development
+ENDUSAGE
+}
+
+function debugLog {
+  test -n "${VERBOSE}" && echo "$@"
+}
+
+function parseArgs {
+  while getopts ":hv" optchar; do
+    case "$optchar" in
+      "h")
+        printUsage && exit 0
+        ;;
+      "v" )
+        VERBOSE=true
+        ;;
+      *)
+        die "Invalid option: -${optchar}"
+        ;;
+    esac
+  done
+
+  HEROKU_APP_NAME=${@:$OPTIND:1}
+  LOCAL_DB_NAME=${@:$OPTIND+1:1}
+
+  test -n "${HEROKU_APP_NAME}" || die "HEROKU_APP_NAME is required. Try -h for help."
+  test -n "${LOCAL_DB_NAME}" || die "LOCAL_DB_NAME is required. Try -h for help."
+}
+
+function ensureTools {
+  debugLog "Checking for the heroku toolbelt and the RethinkDB export / import tools ..."
+  type heroku >/dev/null 2>&1 || die "You must have the heroku toolbelt installed."
+  type rethinkdb-export >/dev/null 2>&1 || die "You must have rethinkdb-export installed."
+  type rethinkdb-import >/dev/null 2>&1 || die "You must have rethinkdb-import installed."
+}
+
+function sourceHerokuConfig {
+  debugLog "Getting the production configuration for ${HEROKU_APP_NAME} ..."
+  HEROKU_CONFIG_FILE="${TMP_DIR}/${HEROKU_APP_NAME}-${NOW}"
+  heroku config -s --app "${HEROKU_APP_NAME}" > "${HEROKU_CONFIG_FILE}"
+  source ${HEROKU_CONFIG_FILE}
+
+  test -n "${RETHINKDB_URL}" || die "Failed to find a valid RETHINKDB_URL from heroku."
+  test -n "${RETHINKDB_CERT}" || die "Failed to find a valid RETHINKDB_CERT from heroku."
+}
+
+function createCertFile {
+  RETHINKDB_CERT_FILE="${TMP_DIR}/rethinkdb-cert-${NOW}"
+  echo "${RETHINKDB_CERT}" > "${RETHINKDB_CERT_FILE}"
+}
+
+function parseRethinkURL {
+  # from: http://stackoverflow.com/questions/6174220/parse-url-in-shell-script
+  FIELDS=($(echo $1 \
+    | awk '{split($0, arr, /[\/\@:]*/); for (x in arr) { print arr[x] }}'))
+  RETHINKDB_AUTH=${FIELDS[1]}
+  RETHINKDB_HOST=${FIELDS[2]}
+  RETHINKDB_PORT=${FIELDS[3]}
+  RETHINKDB_DB=${FIELDS[4]}
+
+  test -n "${RETHINKDB_AUTH}" || die "Failed to find a valid RETHINKDB_AUTH within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_HOST}" || die "Failed to find a valid RETHINKDB_HOST within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_PORT}" || die "Failed to find a valid RETHINKDB_PORT within ${RETHINKDB_URL}."
+  test -n "${RETHINKDB_DB}" || die "Failed to find a valid RETHINKDB_DB within ${RETHINKDB_URL}."
+}
+
+function createPasswordFile {
+  RETHINKDB_PASSWORD_FILE="${TMP_DIR}/rethinkdb-password-${NOW}"
+  echo "${RETHINKDB_AUTH}" > "${RETHINKDB_PASSWORD_FILE}"
+}
+
+function exportDB {
+  debugLog "Exporting the production database ${RETHINKDB_DB} from ${HEROKU_APP_NAME} ..."
+  EXPORT_DIR="${TMP_DIR}/${RETHINKDB_DB}-${NOW}"
+  rethinkdb-export \
+    -c "${RETHINKDB_HOST}:${RETHINKDB_PORT}" \
+    --tls-cert "${RETHINKDB_CERT_FILE}" \
+    --password-file "${RETHINKDB_PASSWORD_FILE}" \
+    -e "${RETHINKDB_DB}" \
+    -d "${EXPORT_DIR}"
+}
+
+function importDB {
+  debugLog "Importing the production database ${RETHINKDB_DB} into ${LOCAL_DB_NAME} ..."
+  mv "${EXPORT_DIR}/${RETHINKDB_DB}" "${EXPORT_DIR}/${LOCAL_DB_NAME}"
+  rethinkdb-import \
+    -d "${EXPORT_DIR}" \
+    --force
+}
+
+function cleanup {
+  rm -rf ${EXPORT_DIR}
+  rm -f ${RETHINKDB_CERT_FILE}
+  rm -f ${RETHINKDB_PASSWORD_FILE}
+  rm -f ${HEROKU_CONFIG_FILE}
+}
+
+# -- global setup --
+
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${ROOT_DIR}/.env"
+
+# -- main --
+
+SCRIPT_NAME="$(basename $0)"
+TMP_DIR="/tmp"
+NOW=$(date '+%Y%m%d%H%M%S')
+
+parseArgs "$@"
+ensureTools
+sourceHerokuConfig
+createCertFile
+parseRethinkURL "${RETHINKDB_URL}"
+createPasswordFile
+exportDB
+importDB
+cleanup
