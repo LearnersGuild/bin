@@ -1,0 +1,73 @@
+#!/bin/bash
+
+function die {
+  echo "Error: $1" && exit 1
+}
+
+function printUsage {
+  cat <<ENDUSAGE
+Usage:
+  ${SCRIPT_NAME} [-h] HEROKU_APP_NAME
+
+Options:
+  -h    print this help message
+  -v    log some helpful debugging output
+
+Example:
+  ${SCRIPT_NAME} lg-game game_development
+ENDUSAGE
+}
+
+function debugLog {
+  test -n "${VERBOSE}" || return 0
+  echo "$@"
+}
+
+function parseArgs {
+  while getopts ":hv" optchar; do
+    case "$optchar" in
+      "h")
+        printUsage && exit 0
+        ;;
+      "v" )
+        VERBOSE=true
+        ;;
+      *)
+        die "Invalid option: -${optchar}"
+        ;;
+    esac
+  done
+
+  HEROKU_APP_NAME=${@:$OPTIND:1}
+
+  test -n "${HEROKU_APP_NAME}" || die "HEROKU_APP_NAME is required. Try -h for help."
+}
+
+function ensureTools {
+  debugLog "Checking for the heroku toolbelt ..."
+  type heroku >/dev/null 2>&1 || die "You must have the heroku toolbelt installed."
+}
+
+function dumpEnv {
+  ENV_FILE="${TMP_DIR}/$1.${NOW}"
+  VARS_FILE="${TMP_DIR}/$1.vars.${NOW}"
+  heroku config -s --app "$1" > "${ENV_FILE}"
+  cat "${ENV_FILE}" | egrep "^[A-Z_]+=" | cut -f1 -d'=' > "${VARS_FILE}"
+
+  set -a
+  source "${ENV_FILE}"
+  
+  for var in $(cat "${VARS_FILE}"); do
+    printf "%s=%q\n" "${var}" "${!var}" | sed "s/\$'/\"/" | sed "s/\'/\"/"
+  done
+}
+
+# -- main --
+
+SCRIPT_NAME="$(basename $0)"
+TMP_DIR="/tmp"
+NOW=$(date '+%Y%m%d%H%M%S')
+
+parseArgs "$@"
+ensureTools
+dumpEnv $1
