@@ -14,9 +14,16 @@ source "${ROOT_DIR}/.env"
 
 repos="${ROOT_DIR}/repos.txt"
 
-cd $LG_BASE_DIR
+[[ -z $LG_BASE_DIR ]] && {
+  echo "LG_BASE_DIR environment variable not found. Add to your .env file."
+  exit 1
+}
 
 while read repo; do
-  git_url="git@github.com:LearnersGuild/$repo.git"
-  git clone $git_url
+  repo_dir="$LG_BASE_DIR/$repo"
+  [ ! -d "$repo_dir" ] && {
+    # Only attempt to clone if directory doesn't exist
+    git_url="git@github.com:LearnersGuild/$repo.git"
+    git clone $git_url $repo_dir
+  }
 done <"$repos"

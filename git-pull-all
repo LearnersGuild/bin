@@ -13,9 +13,21 @@ source "${ROOT_DIR}/.env"
 
 repos="${ROOT_DIR}/repos.txt"
 
-cd $LG_BASE_DIR
+[[ -z $LG_BASE_DIR ]] && {
+  echo "LG_BASE_DIR environment variable not found. Add to your .env file."
+  exit 1
+}
 
 while read repo; do
-  cd "$LG_BASE_DIR/$repo"
-  git pull
+  repo_dir="$LG_BASE_DIR/$repo"
+  cd "$repo_dir"
+
+  if git diff-index --quiet HEAD --
+  then
+    echo "> $repo -- Checking out and pulling to master"
+    git checkout master
+    git pull origin master
+  else
+    echo "> $repo -- Not pulling; you have unstaged changes"
+  fi
 done <"$repos"
