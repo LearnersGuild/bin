@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+#
+# github-api
+#
+# Query the GitHub API. Requires a GITHUB_ACCESS_TOKEN env variable.
+#
+
+set -e
+
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${ROOT_DIR}/.env"
+
+function printUsage {
+  cat <<ENDUSAGE
+Query the GitHub API
+
+Usage:
+  ${SCRIPT_NAME} <req_type> <endpoint>
+
+Example:
+  ${SCRIPT_NAME} GET /user/orgs
+ENDUSAGE
+}
+
+# -- main --
+
+SCRIPT_NAME="$(basename $0)"
+
+[[ $# -eq 2 ]] || {
+  printUsage
+  exit 1
+}
+
+[[ -z $GITHUB_ACCESS_TOKEN ]] && {
+  echo "GITHUB_ACCESS_TOKEN environment variable not found. Add to your .env file."
+  exit 1
+}
+
+req_type=$1
+endpoint=$(echo "$2" | sed 's/^\///')
+
+curl -X $req_type \
+     -H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+     "https://api.github.com/$endpoint"
