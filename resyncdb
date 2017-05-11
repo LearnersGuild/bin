@@ -123,6 +123,11 @@ function cleanup {
   rm -f ${HEROKU_CONFIG_FILE}
 }
 
+function dropDB {
+  debugLog "Dropping local database ${LOCAL_DB_NAME}."
+  echo -e  "import rethinkdb as r; \nr.connect(\"localhost\", 28015).repl() \nr.db_list().contains(\"${LOCAL_DB_NAME}\").do(lambda dbExists: r.branch(dbExists, r.db_drop(\"${LOCAL_DB_NAME}\"), \"${LOCAL_DB_NAME} does not exist. Continuing...\")).run()" | python
+}
+
 # -- global setup --
 
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -141,5 +146,6 @@ createCertFile
 parseRethinkURL "${RETHINKDB_URL}"
 createPasswordFile
 exportDB
+dropDB
 importDB
 cleanup
