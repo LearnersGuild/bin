@@ -12,11 +12,19 @@ These scripts are for common tasks associated with developing software for the L
 
 Clone the repository and create a `.env` file from the example `.env.example`:
 
-```shell-session
-$ cp .env.example .env
+```sh
+cp .env.example .env
 ```
 
 Modify the variables in your `.env` file to fit your configuration needs.
+
+### Install `pip`
+
+https://www.rethinkdb.com/docs/install-drivers/python/
+
+```sh
+sudo pip install rethinkdb
+```
 
 ## Usage
 
@@ -24,8 +32,8 @@ All scripts are executable files without a file extension.
 
 Each script should be executable from any directory, but are generally assumed to be use from the parent directory of this repository, for example:
 
-```shell-session
-$ ./bin/git-clone-all
+```sh
+./bin/git-clone-all
 ```
 
 To create a new script, start by copying the `script-template` file, which already has executable file permissions and some setup code for you to modify.
